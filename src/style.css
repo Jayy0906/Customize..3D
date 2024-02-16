@@ -1,0 +1,239 @@
+@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@400;500&display=swap");
+
+body {
+  overflow: hidden;
+  margin: 0;
+  display: flex;
+  flex-direction: row-reverse;
+  height: 100vh;
+}
+
+#canvas-container {
+    position: relative;
+    width: 100%; /* Adjust as needed */
+    height: 100%; /* Adjust as needed */
+}
+
+#dayNightToggle {
+    position: absolute;
+    top: 20px; /* Adjust as needed */
+    right: 20px; /* Adjust as needed */
+    z-index: 100; /* Ensure the switch appears above other canvas content */
+}
+
+#ui-container {
+  width: 30%;
+  height: 100%;
+  background-color: #f5f5f5;
+  color: #fff;
+  padding: 20px;
+  box-sizing: border-box;
+  overflow-y: auto;
+}
+
+.accordion {
+  margin-bottom: 15px;
+}
+
+.accordion-button {
+  display: block;
+  width: 100%;
+  padding: 10px;
+  background-color: #e5e5e5;
+  color: #000000;
+  text-align: left;
+  font-family: "Poppins", sans-serif;
+  border: none;
+  outline: none;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  border-radius: 10px;
+}
+
+.accordion-button:hover {
+  background-color: #ffc1bd;
+}
+
+.accordion-button:focus {
+  background-color: #ff5a50;
+  color: #fff;
+}
+
+.accordion-content {
+  display: none;
+  margin-left: 10px;
+  color: #000;
+}
+
+.button-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.button {
+  flex: 0 0 calc(50% - 10px);
+  max-width: calc(50% - 10px);
+  height: auto;
+  padding: 10px;
+  box-sizing: border-box;
+  cursor: pointer;
+  border: none;
+  outline: none;
+  text-align: center;
+  /* margin-bottom: 19px; */
+  margin-top: 10px;
+  background-color: #ffffff;
+  transition: background-color 0.3s;
+  border-radius: 10px;
+}
+
+.button:focus {
+  outline-width: 1.5px;
+  outline-style: solid;
+  outline-color: #ff5a50;
+}
+
+.button:hover {
+  background-color: #4a4f54;
+}
+
+.button img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+  transition: transform 0.3s;
+  border-radius: 10px;
+}
+
+.button:hover img {
+  transform: scale(1.1);
+}
+
+.image-name {
+  text-align: center;
+  margin-top: 7.5px;
+  margin-bottom: 2.5px;
+  font-size: 16px;
+  color: #000000;
+  font-weight: 500;
+  transition: color 0.3s;
+  font-family: "Poppins", sans-serif;
+  /* Adjust the color as needed */
+}
+
+.button:hover {
+  background-color: #ffc1bd;
+}
+
+.button:hover .image-name {
+  transform: scale(1.1);
+  transition: transform 0.3s;
+  /* color: white; */
+  /* Font color on hover */
+}
+
+/* Spinner container */
+.spinner-container {
+  position: fixed;
+  top: 40%;
+  left: 35%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Spinner animation */
+.spinner {
+  border: 12px solid #f3f3f3;
+  border-top: 12px solid #3498db;
+  border-radius: 75%;
+  width: 75px;
+  height: 75px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* Toggle switch styles */
+.switch {
+  position: fixed;
+  display: inline-block;
+  width: 60px;
+  height: 34px;
+  padding: auto;
+  bottom: 94.2%;
+  left: 75.5%;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  transition: 0.4s;
+  border-radius: 34px;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 26px;
+  width: 26px;
+  left: 4px;
+  bottom: 4px;
+  background-color: white;
+  transition: 0.4s;
+  border-radius: 50%;
+}
+
+input:checked + .slider {
+  background-color: #ffa500;
+}
+
+input:focus + .slider {
+  box-shadow: 0 0 1px #ffa500;
+}
+
+input:checked + .slider:before {
+  transform: translateX(26px);
+}
+
+/* Rounded sliders */
+.slider.round {
+  border-radius: 34px;
+}
+
+.slider.round:before {
+  border-radius: 50%;
+}
+
+.specificObjectToggle {
+  color: #000;
+}
+
+.material-thumbnail {
+  cursor: grab;
+}
+
+.material-thumbnail.dragging {
+  cursor: grabbing;
+}

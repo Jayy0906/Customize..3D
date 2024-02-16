@@ -1,0 +1,16 @@
+{
+  "scripts": {
+    "dev": "vite"
+  },
+  "devDependencies": {
+    "vite": "^5.0.10"
+  },
+  "dependencies": {
+    "lil-gui": "^0.17.0",
+    "postprocessing": "^6.33.4",
+    "three": "^0.160.0",
+    "three-bas": "^3.0.0",
+    "three-gltf-extensions": "^0.0.15",
+    "vite-plugin-mkcert": "^1.17.1"
+  }
+}
