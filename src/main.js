@@ -8,96 +8,43 @@ import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer
 import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
 import { SSAOPass } from "three/examples/jsm/postprocessing/SSAOPass.js";
 import { SMAAPass } from "three/examples/jsm/postprocessing/SMAAPass.js";
+import { SubsurfaceScatteringShader } from 'three/examples/jsm/shaders/SubsurfaceScatteringShader';
+import { RepeatWrapping, ShaderMaterial, TextureLoader, UniformsUtils, Vector3, DoubleSide } from 'three';
 
-// Function for loading models
-function loadModels() {
-  const modelPaths = [
-    "models/Wall.glb",
-    "models/Floor.glb",
-    "models/Carpet.glb",
-    "models/Frame.glb",
-    "models/Plant.glb",
-    "models/Floor_Lamp.glb",
-    "models/Coffee_Table.glb",
-    "models/Window.glb",
-    "models/Sofa.glb",
-  ];
+const modelPaths = [
+  "models/Wall.glb",
+  "models/Floor.glb",
+  "models/Carpet_Default.glb",
+  "models/Sofa.glb",
+  "models/Floor_Lamp.glb",
+  "models/Window.glb",
+  "models/Coffee_Table.glb",
+  "models/Plant.glb",
+  "models/Frame.glb",
 
-  let currentModelIndex = 0;
-
-  function loadNextModel() {
-    if (currentModelIndex < modelPaths.length) {
-      const loader = new GLTFLoader();
-      const dracoLoader = new DRACOLoader();
-      const ktx2Loader = new KTX2Loader();
-
-      ktx2Loader.setTranscoderPath("/basis/");
-      ktx2Loader.detectSupport(renderer);
-
-      dracoLoader.setDecoderPath(
-        "https://www.gstatic.com/draco/versioned/decoders/1.4.2/"
-      );
-
-      loader.setDRACOLoader(dracoLoader);
-      loader.setKTX2Loader(ktx2Loader);
-
-      loader.load(modelPaths[currentModelIndex], (gltf) => {
-        const loadedModel = gltf.scene;
-
-        if (modelPaths[currentModelIndex] === "models/Sofa.glb") {
-          loadedSofa = loadedModel;
-          storeOriginalMaterials(loadedSofa);
-        }
-
-        else if (modelPaths[currentModelIndex] === "models/Floor.glb") {
-          loadedFloor = loadedModel;
-          storeOriginalMaterials(loadedFloor);
-        }
-
-        else if (modelPaths[currentModelIndex] === "models/Window.glb") {
-          loadedWinow = loadedModel;
-          storeOriginalMaterials(loadedWinow);
-        }
-
-        else if (modelPaths[currentModelIndex] === "models/Coffee_Table.glb") {
-          loadedCoffeeTable = loadedModel;
-          storeOriginalMaterials(loadedCoffeeTable);
-        }
-
-        scene.add(loadedModel);
-        scene.position.set(0, -0.5, 0);
-
-        currentModelIndex++;
-        loadNextModel();
-
-        function setupHDRI() {
-          const rgbeloader = new RGBELoader();
-          rgbeloader.load("hdri/gem_2.hdr", (hdri) => {
-            const myhdr = hdri;
-            myhdr.mapping = THREE.EquirectangularReflectionMapping;
-            scene.environment = myhdr;
-          });
-        }
-
-        setupHDRI();
-      });
-    } else {
-      // After loading all models
-      // You can perform additional actions here if needed
-      
-      addLights();
-      startAnimation();
-    }
-  }
-
-  loadNextModel();
-}
+  // "https://s3.console.aws.amazon.com/s3/object/material3d-demo?region=us-west-1&bucketType=general&prefix=Sofa_Default.glb",
+  // "https://s3.console.aws.amazon.com/s3/object/material3d-demo?region=us-west-1&bucketType=general&prefix=Carpet_Default.glb",
+  // "https://s3.console.aws.amazon.com/s3/object/material3d-demo?region=us-west-1&bucketType=general&prefix=Floor_Lamp.glb",
+  // "https://s3.console.aws.amazon.com/s3/object/material3d-demo?region=us-west-1&bucketType=general&prefix=Frame.glb",
+  // "https://s3.console.aws.amazon.com/s3/object/material3d-demo?region=us-west-1&bucketType=general&prefix=Plant.glb",
+  // "https://s3.console.aws.amazon.com/s3/object/material3d-demo?region=us-west-1&bucketType=general&prefix=Coffee_Table.glb",
+  // "https://s3.console.aws.amazon.com/s3/object/material3d-demo?region=us-west-1&bucketType=general&prefix=Floor.glb",
+  // "https://s3.console.aws.amazon.com/s3/object/material3d-demo?region=us-west-1&bucketType=general&prefix=Wall.glb",
+  // "https://s3.console.aws.amazon.com/s3/object/material3d-demo?region=us-west-1&bucketType=general&prefix=Window.glb"
+];
 
 const progressContainer = document.querySelector(".spinner-container");
+const specificObjectToggleCheckbox = document.getElementById('specificObjectToggle');
+let specificObject;
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xffffff); // Set 3D scene's background color to white
-const camera = new THREE.PerspectiveCamera(40,window.innerWidth / window.innerHeight,0.1,1000);
+const camera = new THREE.PerspectiveCamera(
+  40,
+  window.innerWidth / window.innerHeight,
+  0.1,
+  1000
+);
 const renderer = new THREE.WebGLRenderer({ antialias: false });
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -121,7 +68,12 @@ const smaaPass = new SMAAPass(
 composer.addPass(smaaPass);
 
 // SSAO pass
-const ssaoPass = new SSAOPass(scene,camera,window.innerWidth,window.innerHeight);
+const ssaoPass = new SSAOPass(
+  scene,
+  camera,
+  window.innerWidth,
+  window.innerHeight
+);
 ssaoPass.kernelRadius = 16;
 ssaoPass.minDistance = 0.01;
 ssaoPass.maxDistance = 0.05;
@@ -133,8 +85,36 @@ controls.dampingFactor = 0.05;
 // controls.screenSpacePanning = false;
 controls.maxPolarAngle = Math.PI / 2;
 
-function createMaterialFromJSON(jsonData) {
+const loader = new GLTFLoader();
+const dracoLoader = new DRACOLoader();
+const ktx2Loader = new KTX2Loader();
 
+ktx2Loader.setTranscoderPath("/basis/");
+ktx2Loader.detectSupport(renderer);
+
+dracoLoader.setDecoderPath(
+  "https://www.gstatic.com/draco/versioned/decoders/1.4.2/"
+);
+
+loader.setDRACOLoader(dracoLoader);
+loader.setKTX2Loader(ktx2Loader);
+
+const dayNightToggle = document.getElementById("dayNightToggle");
+let isDayMode = false; // Initial mode is day
+
+function setupHDRI() {
+  const rgbeloader = new RGBELoader();
+  rgbeloader.load("hdri/gem_2.hdr", (hdri) => {
+    const myhdr = hdri;
+    myhdr.mapping = THREE.EquirectangularReflectionMapping;
+    scene.environment = myhdr;
+    scene.background = new THREE.Color("#000");
+  });
+}
+
+setupHDRI();
+
+function createMaterialFromJSON(jsonData) {
   const diffuseMap = new THREE.TextureLoader().load(jsonData.diffuseMap);
   const glossMap = new THREE.TextureLoader().load(jsonData.glossMap);
   const normalMap = new THREE.TextureLoader().load(jsonData.normalMap);
@@ -177,25 +157,26 @@ function createMaterialFromJSON(jsonData) {
 }
 
 const loadedModelsMap = {};
-let loadedSofa, loadedFloor, loadedCoffeeTable, loadedWinow; // Variable to store the loaded Sofa model
+let loadedSofa, loadedFloor, loadedmetal, loadedglass, loadedwall, loadedcarpet; // Variable to store the loaded Sofa model
 const originalMaterials = new Map(); // Map to store original materials by node name
 let jsonFiles; // Variable to store JSON data
 
 // Function for changing material variants
 function changeMaterialVariant(model, materialName) {
   if (!model || !jsonFiles) {
-    console.error('Model or JSON data not available');
+    console.error("Model or JSON data not available");
     return;
   }
 
   const selectedJsonData = jsonFiles[materialName];
   if (!selectedJsonData) {
-    console.error('JSON data for material not found:', materialName);
+    console.error("JSON data for material not found:", materialName);
     return;
   }
 
   model.traverse((node) => {
-    if (node.isMesh && node.material) { // Check if node has material
+    if (node.isMesh && node.material) {
+      // Check if node has material
       const originalMaterial = originalMaterials.get(node.uuid);
       if (originalMaterial) {
         node.material.copy(originalMaterial);
@@ -204,7 +185,7 @@ function changeMaterialVariant(model, materialName) {
         if (newMaterial) {
           node.material = newMaterial.clone();
         } else {
-          console.error('Failed to create material for node:', node);
+          console.error("Failed to create material for node:", node);
         }
       }
     }
@@ -216,21 +197,103 @@ function processJsonData() {
     .then((response) => response.json())
     .then((data) => {
       jsonFiles = data;
-      const materialbutton = document.querySelectorAll(".material-thumbnail");
 
-      Array.from(materialbutton).forEach((item) => {
+      const materialbuttonsofa = document.querySelectorAll(
+        ".material-thumbnail-sofa"
+      );
+      const materialbuttonfloor = document.querySelectorAll(
+        ".material-thumbnail-floor"
+      );
+      const materialbuttonmetal = document.querySelectorAll(
+        ".material-thumbnail-metal"
+      );
+      const materialbuttonglass = document.querySelectorAll(
+        ".material-thumbnail-glass"
+      );
+      const materialbuttonwall = document.querySelectorAll(
+        ".material-thumbnail-wall"
+      );
+      const materialbuttoncarpet = document.querySelectorAll(
+        ".material-thumbnail-carpet"
+      );
+
+      Array.from(materialbuttonsofa).forEach((item) => {
         item.addEventListener("dragstart", (e) => {
-          // const thumbnail = e.target;
-          // const materialName = thumbnail.dataset.material;
+          const thumbnail = e.target;
+          const materialName = thumbnail.dataset.material;
+          progressContainer.style.display = "flex";
         });
 
         item.addEventListener("dragend", (e) => {
           const thumbnail = e.target;
           const materialName = thumbnail.dataset.material;
           changeMaterialVariant(loadedSofa, materialName);
+          progressContainer.style.display = "none";
+        });
+      });
+
+      Array.from(materialbuttonfloor).forEach((item) => {
+        item.addEventListener("dragstart", (e) => {
+          const thumbnail = e.target;
+          const materialName = thumbnail.dataset.material;
+        });
+
+        item.addEventListener("dragend", (e) => {
+          const thumbnail = e.target;
+          const materialName = thumbnail.dataset.material;
           changeMaterialVariant(loadedFloor, materialName);
-          changeMaterialVariant(loadedCoffeeTable, materialName);
-          changeMaterialVariant(loadedWinow, materialName);
+        });
+      });
+
+      Array.from(materialbuttonmetal).forEach((item) => {
+        item.addEventListener("dragstart", (e) => {
+          const thumbnail = e.target;
+          const materialName = thumbnail.dataset.material;
+        });
+
+        item.addEventListener("dragend", (e) => {
+          const thumbnail = e.target;
+          const materialName = thumbnail.dataset.material;
+          changeMaterialVariant(loadedmetal, materialName);
+        });
+      });
+
+      Array.from(materialbuttonglass).forEach((item) => {
+        item.addEventListener("dragstart", (e) => {
+          const thumbnail = e.target;
+          const materialName = thumbnail.dataset.material;
+        });
+
+        item.addEventListener("dragend", (e) => {
+          const thumbnail = e.target;
+          const materialName = thumbnail.dataset.material;
+          changeMaterialVariant(loadedglass, materialName);
+        });
+      });
+
+      Array.from(materialbuttonwall).forEach((item) => {
+        item.addEventListener("dragstart", (e) => {
+          const thumbnail = e.target;
+          const materialName = thumbnail.dataset.material;
+        });
+
+        item.addEventListener("dragend", (e) => {
+          const thumbnail = e.target;
+          const materialName = thumbnail.dataset.material;
+          changeMaterialVariant(loadedwall, materialName);
+        });
+      });
+
+      Array.from(materialbuttoncarpet).forEach((item) => {
+        item.addEventListener("dragstart", (e) => {
+          const thumbnail = e.target;
+          const materialName = thumbnail.dataset.material;
+        });
+
+        item.addEventListener("dragend", (e) => {
+          const thumbnail = e.target;
+          const materialName = thumbnail.dataset.material;
+          changeMaterialVariant(loadedcarpet, materialName);
         });
       });
     })
@@ -241,21 +304,131 @@ function storeOriginalMaterials(model) {
   model.traverse((node) => {
     if (node.isMesh) {
       originalMaterials.set(node.name, node.material.clone());
-      // originalMaterials.set(node.uuid, node.material.clone());
     }
   });
 }
 
-const dayNightToggle = document.getElementById("dayNightToggle");
-let isDayMode = false; // Initial mode is day
+// Function for loading models
+function loadModels() {
+  let currentModelIndex = 0;
 
-function addLights() {
-  const ambientLight = new THREE.AmbientLight(0xffffff, 0.25);
-  scene.add(ambientLight);
+  function loadNextModel() {
+    if (currentModelIndex < modelPaths.length) {
+      loader.load(modelPaths[currentModelIndex], (gltf) => {
+        const loadedModel = gltf.scene;
 
-  const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
-  directionalLight.position.set(5, 5, 5);
-  scene.add(directionalLight);
+        if (modelPaths[currentModelIndex] === "models/Sofa.glb") {
+          loadedSofa = loadedModel;
+          storeOriginalMaterials(loadedSofa);
+        } else if (modelPaths[currentModelIndex] === "models/Floor.glb") {
+          loadedFloor = loadedModel;
+          storeOriginalMaterials(loadedFloor);
+        } else if (
+          modelPaths[currentModelIndex] === "models/Coffee_Table.glb"
+        ) {
+          loadedmetal = loadedModel;
+          storeOriginalMaterials(loadedmetal);
+        } else if (modelPaths[currentModelIndex] === "models/Window.glb") {
+          loadedglass = loadedModel;
+          storeOriginalMaterials(loadedglass);
+        } else if (modelPaths[currentModelIndex] === "models/Wall.glb") {
+          loadedwall = loadedModel;
+          storeOriginalMaterials(loadedwall);
+        } else if (modelPaths[currentModelIndex] === "models/Carpet_Default.glb") {
+          loadedcarpet = loadedModel;
+          storeOriginalMaterials(loadedcarpet);
+        }
+
+        scene.add(loadedModel);
+        scene.position.set(0, -0.5, 0);
+
+        currentModelIndex++;
+        loadNextModel();
+      });
+    } else {
+      // After loading all models
+      // You can perform additional actions here if needed
+      startAnimation();
+    }
+  }
+
+  loadNextModel();
+}
+
+function createSubsurfaceMaterial() {
+  const texLoader = new TextureLoader();
+  const subTexture = texLoader.load("./textures/subTexture.png");
+  subTexture.wrapS = subTexture.wrapT = RepeatWrapping;
+  subTexture.repeat.set(4, 4);
+
+  const shader = SubsurfaceScatteringShader;
+  const uniforms = UniformsUtils.clone(shader.uniforms);
+
+  // Adjust the color to a more neutral tone
+  uniforms.diffuse.value = new Vector3(0.9, 0.7, 0.5);
+  uniforms.shininess.value = 10;
+
+  uniforms.thicknessMap.value = subTexture;
+  uniforms.thicknessColor.value = new Vector3(
+    0.5607843137254902,
+    0.26666666666666666,
+    0.054901960784313725
+  );
+  uniforms.thicknessDistortion.value = 0.1;
+  uniforms.thicknessAmbient.value = 0.4;
+  uniforms.thicknessAttenuation.value = 0.7;
+  uniforms.thicknessPower.value = 10.0;
+  uniforms.thicknessScale.value = 1;
+
+  const subMaterial = new ShaderMaterial({
+    uniforms,
+    vertexShader: shader.vertexShader,
+    fragmentShader: shader.fragmentShader,
+    lights: true,
+  });
+
+  subMaterial.side = DoubleSide; // Render on both sides of the geometry
+
+  return subMaterial;
+}
+
+function replaceMaterial(model, materialName, newMaterial) {
+  model.traverse((child) => {
+    if (child.isMesh) {
+      const mesh = child;
+
+      // Check if the mesh name matches the specified materialName
+      if (mesh.name === materialName) {
+        // console.log(`Replacing material for ${materialName}`);
+        mesh.material = newMaterial;
+      }
+    }
+  });
+}
+
+// Example: Replace material of 'FloorLamp_Cover' with subsurface scattering material
+const subsurfaceScatteringMaterial = createSubsurfaceMaterial();
+
+// Ensure that specificObject is defined before replacing its material
+if (specificObject) {
+  replaceMaterial(
+    specificObject,
+    "FloorLamp_Cover",
+    subsurfaceScatteringMaterial
+  );
+}
+
+if (specificObjectToggleCheckbox) {
+  specificObjectToggleCheckbox.addEventListener("change", () => {
+    const isActivated = specificObjectToggleCheckbox.checked;
+
+    // Toggle visibility of the specific object based on the checkbox state
+    if (specificObject) {
+      specificObject.visible = isActivated;
+    }
+  });
+} else {
+  // console.error("Element with id 'specificObjectToggle' not found.");
 }
 
 // Function to add a directional light
@@ -311,7 +484,7 @@ if (dayNightToggle) {
           if (modelData.scene) {
             modelData.scene.traverse(function (child) {
               if (child.isLight) {
-                let l = child;
+                let l = child.PointLight;
                 l.power = 0;
               }
             });
@@ -346,7 +519,7 @@ if (dayNightToggle) {
           if (modelData.scene) {
             modelData.scene.traverse(function (child) {
               if (child.isLight) {
-                let l = child;
+                let l = child.PointLight;
                 l.power = 400;
               }
             });
@@ -379,6 +552,31 @@ if (dayNightToggle) {
   console.error("Element with id 'dayNightToggle' not found.");
 }
 
+function startAnimation() {
+  function animate() {
+    requestAnimationFrame(animate);
+    controls.update();
+    renderer.render(scene, camera);
+
+    composer.render();
+  }
+
+  camera.position.set(-3.5, 2, 3.5);
+  // camera.lookAt(0, 0.9, 0);
+
+  const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+  scene.add(ambientLight);
+
+  animate();
+
+  // Set controls target to the center of the scene
+  controls.target.set(0, 0, 0);
+}
+
+// Assuming you call these functions somewhere in your code
+processJsonData();
+loadModels();
+
 // const gridSize = 5; // Adjust the size of the grid
 // const gridDivisions = 10; // Adjust the number of divisions in the grid
 
@@ -402,25 +600,3 @@ if (dayNightToggle) {
 // gridMesh.rotation.x = -Math.PI / 2; // Rotate the grid to be horizontal
 // gridMesh.position.y = -0.51; // Adjust the Y position to be just below other objects
 // scene.add(gridMesh);
-
-function startAnimation() {
-  function animate() {
-    requestAnimationFrame(animate);
-    controls.update();
-    renderer.render(scene, camera);
-
-    composer.render();
-  }
-
-  camera.position.set(-3.5, 2, 3.5);
-  // camera.lookAt(0, 0.9, 0);
-
-  animate();
-
-  // Set controls target to the center of the scene
-  controls.target.set(0, 0, 0);
-}
-
-// Assuming you call these functions somewhere in your code
-processJsonData();
-loadModels();
